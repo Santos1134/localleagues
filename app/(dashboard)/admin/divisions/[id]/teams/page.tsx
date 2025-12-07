@@ -13,6 +13,7 @@ export default function TeamsManagementPage() {
   const [teamManagers, setTeamManagers] = useState<Profile[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
+  const [editingTeam, setEditingTeam] = useState<Team | null>(null)
   const [formData, setFormData] = useState({
     name: '',
     short_name: '',
@@ -81,30 +82,74 @@ export default function TeamsManagementPage() {
       return
     }
 
-    const { error: insertError } = await supabase
-      .from('teams')
-      .insert({
-        ...formData,
-        division_id: divisionId,
-        manager_id: formData.manager_id || null
-      })
+    if (editingTeam) {
+      // Update existing team
+      const { error: updateError } = await supabase
+        .from('teams')
+        .update({
+          ...formData,
+          manager_id: formData.manager_id || null
+        })
+        .eq('id', editingTeam.id)
 
-    if (insertError) {
-      setError(insertError.message)
+      if (updateError) {
+        setError(updateError.message)
+      } else {
+        setSuccess('Team updated successfully!')
+        setEditingTeam(null)
+        setFormData({
+          name: '',
+          short_name: '',
+          home_city: '',
+          home_venue: '',
+          founded_year: new Date().getFullYear(),
+          manager_id: '',
+          logo_url: ''
+        })
+        setShowForm(false)
+        fetchData()
+      }
     } else {
-      setSuccess('Team created successfully!')
-      setFormData({
-        name: '',
-        short_name: '',
-        home_city: '',
-        home_venue: '',
-        founded_year: new Date().getFullYear(),
-        manager_id: '',
-        logo_url: ''
-      })
-      setShowForm(false)
-      fetchData()
+      // Create new team
+      const { error: insertError } = await supabase
+        .from('teams')
+        .insert({
+          ...formData,
+          division_id: divisionId,
+          manager_id: formData.manager_id || null
+        })
+
+      if (insertError) {
+        setError(insertError.message)
+      } else {
+        setSuccess('Team created successfully!')
+        setFormData({
+          name: '',
+          short_name: '',
+          home_city: '',
+          home_venue: '',
+          founded_year: new Date().getFullYear(),
+          manager_id: '',
+          logo_url: ''
+        })
+        setShowForm(false)
+        fetchData()
+      }
     }
+  }
+
+  const handleEdit = (team: Team) => {
+    setEditingTeam(team)
+    setFormData({
+      name: team.name,
+      short_name: team.short_name || '',
+      home_city: team.home_city || '',
+      home_venue: team.home_venue || '',
+      founded_year: team.founded_year || new Date().getFullYear(),
+      manager_id: team.manager_id || '',
+      logo_url: team.logo_url || ''
+    })
+    setShowForm(true)
   }
 
   const deleteTeam = async (teamId: string) => {
@@ -164,7 +209,7 @@ export default function TeamsManagementPage() {
 
         {showForm && (
           <div className="bg-white rounded-lg shadow p-6 mb-8">
-            <h2 className="text-2xl font-bold mb-4">Add New Team</h2>
+            <h2 className="text-2xl font-bold mb-4">{editingTeam ? 'Edit Team' : 'Add New Team'}</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -272,11 +317,23 @@ export default function TeamsManagementPage() {
                   type="submit"
                   className="bg-liberia-red hover:bg-liberia-blue text-white font-bold py-2 px-6 rounded"
                 >
-                  Add Team
+                  {editingTeam ? 'Update Team' : 'Add Team'}
                 </button>
                 <button
                   type="button"
-                  onClick={() => setShowForm(false)}
+                  onClick={() => {
+                    setShowForm(false)
+                    setEditingTeam(null)
+                    setFormData({
+                      name: '',
+                      short_name: '',
+                      home_city: '',
+                      home_venue: '',
+                      founded_year: new Date().getFullYear(),
+                      manager_id: '',
+                      logo_url: ''
+                    })
+                  }}
                   className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-6 rounded"
                 >
                   Cancel
@@ -353,6 +410,12 @@ export default function TeamsManagementPage() {
                       className="flex-1 bg-liberia-red hover:bg-liberia-blue text-white text-sm py-2 px-4 rounded"
                     >
                       Manage Players
+                    </button>
+                    <button
+                      onClick={() => handleEdit(team)}
+                      className="bg-blue-600 hover:bg-blue-700 text-white text-sm py-2 px-4 rounded"
+                    >
+                      Edit
                     </button>
                     <button
                       onClick={() => deleteTeam(team.id)}
