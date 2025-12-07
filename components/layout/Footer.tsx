@@ -53,6 +53,11 @@ export default function Footer() {
                 </a>
               </li>
               <li>
+                <a href="/sponsors" className="hover:text-yellow-400 transition">
+                  Become a Sponsor
+                </a>
+              </li>
+              <li>
                 <a href="/rules" className="hover:text-yellow-400 transition">
                   League Rules
                 </a>
