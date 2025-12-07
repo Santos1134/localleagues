@@ -148,12 +148,6 @@ export default function LoginPage() {
               {loading ? 'Signing in...' : 'Sign in'}
             </button>
           </div>
-
-          <div className="text-center text-sm text-gray-600">
-            <p>Demo accounts:</p>
-            <p className="text-xs mt-1">Admin: admin@example.com / admin123</p>
-            <p className="text-xs">Manager: manager@example.com / manager123</p>
-          </div>
         </form>
       </div>
     </div>

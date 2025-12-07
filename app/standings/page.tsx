@@ -18,7 +18,7 @@ export default async function StandingsPage() {
     `)
     .order('name')
 
-  // Fetch standings for each division
+  // Fetch standings for each division with team logos
   const standingsPromises =
     divisions?.map(async (division) => {
       const { data } = await supabase
@@ -29,9 +29,25 @@ export default async function StandingsPage() {
         .order('goal_difference', { ascending: false })
         .order('goals_for', { ascending: false })
 
+      // Fetch team logos
+      const standingsWithLogos = await Promise.all(
+        (data || []).map(async (standing) => {
+          const { data: team } = await supabase
+            .from('teams')
+            .select('logo_url')
+            .eq('id', standing.team_id)
+            .single()
+
+          return {
+            ...standing,
+            logo_url: team?.logo_url
+          }
+        })
+      )
+
       return {
         division,
-        standings: data as DivisionStanding[],
+        standings: standingsWithLogos as any[],
       }
     }) || []
 
@@ -130,7 +146,20 @@ export default async function StandingsPage() {
                                 {position}
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">
-                                {team.team_name}
+                                <div className="flex items-center gap-3">
+                                  {(team as any).logo_url ? (
+                                    <img
+                                      src={(team as any).logo_url}
+                                      alt={team.team_name}
+                                      className="w-8 h-8 object-contain"
+                                    />
+                                  ) : (
+                                    <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center text-xs font-bold text-gray-500">
+                                      {team.team_name.substring(0, 2).toUpperCase()}
+                                    </div>
+                                  )}
+                                  <span>{team.team_name}</span>
+                                </div>
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
                                 {team.played}
