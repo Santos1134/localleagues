@@ -58,7 +58,7 @@ export default function Footer() {
                 </a>
               </li>
               <li>
-                <a href="/contact" className="hover:text-yellow-400 transition">
+                <a href="https://wa.me/231776428126" target="_blank" rel="noopener noreferrer" className="hover:text-yellow-400 transition">
                   Contact
                 </a>
               </li>
@@ -74,8 +74,16 @@ export default function Footer() {
           <div>
             <h4 className="font-semibold mb-4 text-yellow-400">Contact Us</h4>
             <ul className="space-y-2 text-sm text-gray-400">
-              <li>Email: info@liberialeague.com</li>
-              <li>Phone: +231 XXX XXXX</li>
+              <li>
+                <a href="mailto:sumomarky@gmail.com" className="hover:text-yellow-400 transition">
+                  Email: sumomarky@gmail.com
+                </a>
+              </li>
+              <li>
+                <a href="https://wa.me/231776428126" target="_blank" rel="noopener noreferrer" className="hover:text-yellow-400 transition">
+                  Phone: +231 776 428 126
+                </a>
+              </li>
               <li>Location: Monrovia, Liberia</li>
             </ul>
           </div>
