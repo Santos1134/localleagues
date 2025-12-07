@@ -26,7 +26,7 @@ export default function LoginPage() {
 
       if (error) throw error
 
-      // Redirect based on user role
+      // Only allow admin login
       if (data.user) {
         const { data: profile } = await supabase
           .from('profiles')
@@ -34,25 +34,11 @@ export default function LoginPage() {
           .eq('id', data.user.id)
           .single()
 
-        if (profile) {
-          switch (profile.role) {
-            case 'admin':
-              router.push('/admin')
-              break
-            case 'team_manager':
-              router.push('/manager')
-              break
-            case 'match_official':
-              router.push('/official')
-              break
-            case 'player':
-              router.push('/player')
-              break
-            default:
-              router.push('/')
-          }
+        if (profile?.role === 'admin') {
+          router.push('/admin')
         } else {
-          router.push('/')
+          await supabase.auth.signOut()
+          throw new Error('Access denied. Admin privileges required.')
         }
       }
     } catch (err: any) {
@@ -67,13 +53,10 @@ export default function LoginPage() {
       <div className="max-w-md w-full space-y-8">
         <div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Sign in to your account
+            Admin Login
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            Or{' '}
-            <Link href="/signup" className="font-medium text-liberia-red hover:text-liberia-red">
-              create a new account
-            </Link>
+            League Management System
           </p>
         </div>
 
