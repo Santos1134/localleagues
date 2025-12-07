@@ -9,6 +9,7 @@ export default function LeaguesManagementPage() {
   const [leagues, setLeagues] = useState<League[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
+  const [editingLeague, setEditingLeague] = useState<League | null>(null)
   const [formData, setFormData] = useState({
     name: '',
     sport: 'football' as 'football' | 'basketball' | 'volleyball',
@@ -53,30 +54,76 @@ export default function LeaguesManagementPage() {
       return
     }
 
-    const { data: userData } = await supabase.auth.getUser()
+    if (editingLeague) {
+      // Update existing league
+      const { error: updateError } = await supabase
+        .from('leagues')
+        .update({
+          name: formData.name,
+          sport: formData.sport,
+          description: formData.description,
+          season_start_date: formData.season_start_date,
+          season_end_date: formData.season_end_date,
+          logo_url: formData.logo_url || null
+        })
+        .eq('id', editingLeague.id)
 
-    const { error: insertError } = await supabase
-      .from('leagues')
-      .insert({
-        ...formData,
-        created_by: userData.user?.id
-      })
-
-    if (insertError) {
-      setError(insertError.message)
+      if (updateError) {
+        setError(updateError.message)
+      } else {
+        setSuccess('League updated successfully!')
+        setEditingLeague(null)
+        setFormData({
+          name: '',
+          sport: 'football',
+          description: '',
+          season_start_date: '',
+          season_end_date: '',
+          logo_url: ''
+        })
+        setShowForm(false)
+        fetchLeagues()
+      }
     } else {
-      setSuccess('League created successfully!')
-      setFormData({
-        name: '',
-        sport: 'football',
-        description: '',
-        season_start_date: '',
-        season_end_date: '',
-        logo_url: ''
-      })
-      setShowForm(false)
-      fetchLeagues()
+      // Create new league
+      const { data: userData } = await supabase.auth.getUser()
+
+      const { error: insertError } = await supabase
+        .from('leagues')
+        .insert({
+          ...formData,
+          created_by: userData.user?.id
+        })
+
+      if (insertError) {
+        setError(insertError.message)
+      } else {
+        setSuccess('League created successfully!')
+        setFormData({
+          name: '',
+          sport: 'football',
+          description: '',
+          season_start_date: '',
+          season_end_date: '',
+          logo_url: ''
+        })
+        setShowForm(false)
+        fetchLeagues()
+      }
     }
+  }
+
+  const handleEdit = (league: League) => {
+    setEditingLeague(league)
+    setFormData({
+      name: league.name,
+      sport: league.sport,
+      description: league.description || '',
+      season_start_date: league.season_start_date,
+      season_end_date: league.season_end_date,
+      logo_url: league.logo_url || ''
+    })
+    setShowForm(true)
   }
 
   const toggleLeagueStatus = async (leagueId: string, currentStatus: boolean) => {
@@ -135,7 +182,20 @@ export default function LeaguesManagementPage() {
 
         <div className="mb-6">
           <button
-            onClick={() => setShowForm(!showForm)}
+            onClick={() => {
+              setShowForm(!showForm)
+              if (showForm) {
+                setEditingLeague(null)
+                setFormData({
+                  name: '',
+                  sport: 'football',
+                  description: '',
+                  season_start_date: '',
+                  season_end_date: '',
+                  logo_url: ''
+                })
+              }
+            }}
             className="bg-liberia-red hover:bg-liberia-blue text-white font-bold py-2 px-6 rounded"
           >
             {showForm ? 'Cancel' : '+ Create New League'}
@@ -144,7 +204,7 @@ export default function LeaguesManagementPage() {
 
         {showForm && (
           <div className="bg-white rounded-lg shadow p-6 mb-8">
-            <h2 className="text-2xl font-bold mb-4">Create New League</h2>
+            <h2 className="text-2xl font-bold mb-4">{editingLeague ? 'Edit League' : 'Create New League'}</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -234,11 +294,22 @@ export default function LeaguesManagementPage() {
                   type="submit"
                   className="bg-liberia-red hover:bg-liberia-blue text-white font-bold py-2 px-6 rounded"
                 >
-                  Create League
+                  {editingLeague ? 'Update League' : 'Create League'}
                 </button>
                 <button
                   type="button"
-                  onClick={() => setShowForm(false)}
+                  onClick={() => {
+                    setShowForm(false)
+                    setEditingLeague(null)
+                    setFormData({
+                      name: '',
+                      sport: 'football',
+                      description: '',
+                      season_start_date: '',
+                      season_end_date: '',
+                      logo_url: ''
+                    })
+                  }}
                   className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-6 rounded"
                 >
                   Cancel
@@ -306,6 +377,12 @@ export default function LeaguesManagementPage() {
                         </span>
                       </td>
                       <td className="px-6 py-4 text-sm">
+                        <button
+                          onClick={() => handleEdit(league)}
+                          className="text-blue-600 hover:text-blue-800 mr-4 font-medium"
+                        >
+                          Edit
+                        </button>
                         <button
                           onClick={() => toggleLeagueStatus(league.id, league.is_active)}
                           className="text-blue-600 hover:text-blue-800 mr-4"
