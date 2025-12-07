@@ -3,14 +3,13 @@
 import { createClient } from '@/lib/supabase/client'
 import { useParams, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import type { Division, Team, Profile } from '@/lib/types/database.types'
+import type { Division, Team } from '@/lib/types/database.types'
 
 export default function TeamsManagementPage() {
   const params = useParams()
   const divisionId = params.id as string
   const [division, setDivision] = useState<Division | null>(null)
   const [teams, setTeams] = useState<Team[]>([])
-  const [teamManagers, setTeamManagers] = useState<Profile[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [editingTeam, setEditingTeam] = useState<Team | null>(null)
@@ -20,7 +19,6 @@ export default function TeamsManagementPage() {
     home_city: '',
     home_venue: '',
     founded_year: new Date().getFullYear(),
-    manager_id: '',
     logo_url: ''
   })
   const [error, setError] = useState('')
@@ -52,22 +50,12 @@ export default function TeamsManagementPage() {
       .from('teams')
       .select(`
         *,
-        manager:profiles(full_name),
         _count:players(count)
       `)
       .eq('division_id', divisionId)
       .order('name')
 
     if (teamsData) setTeams(teamsData as Team[])
-
-    // Fetch team managers
-    const { data: managersData } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('role', 'team_manager')
-      .order('full_name')
-
-    if (managersData) setTeamManagers(managersData as Profile[])
 
     setLoading(false)
   }
@@ -86,10 +74,7 @@ export default function TeamsManagementPage() {
       // Update existing team
       const { error: updateError } = await supabase
         .from('teams')
-        .update({
-          ...formData,
-          manager_id: formData.manager_id || null
-        })
+        .update(formData)
         .eq('id', editingTeam.id)
 
       if (updateError) {
@@ -103,7 +88,6 @@ export default function TeamsManagementPage() {
           home_city: '',
           home_venue: '',
           founded_year: new Date().getFullYear(),
-          manager_id: '',
           logo_url: ''
         })
         setShowForm(false)
@@ -115,8 +99,7 @@ export default function TeamsManagementPage() {
         .from('teams')
         .insert({
           ...formData,
-          division_id: divisionId,
-          manager_id: formData.manager_id || null
+          division_id: divisionId
         })
 
       if (insertError) {
@@ -129,7 +112,6 @@ export default function TeamsManagementPage() {
           home_city: '',
           home_venue: '',
           founded_year: new Date().getFullYear(),
-          manager_id: '',
           logo_url: ''
         })
         setShowForm(false)
@@ -146,7 +128,6 @@ export default function TeamsManagementPage() {
       home_city: team.home_city || '',
       home_venue: team.home_venue || '',
       founded_year: team.founded_year || new Date().getFullYear(),
-      manager_id: team.manager_id || '',
       logo_url: team.logo_url || ''
     })
     setShowForm(true)
@@ -280,24 +261,6 @@ export default function TeamsManagementPage() {
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Team Manager
-                  </label>
-                  <select
-                    value={formData.manager_id}
-                    onChange={(e) => setFormData({ ...formData, manager_id: e.target.value })}
-                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-liberia-red"
-                  >
-                    <option value="">Select a manager (optional)</option>
-                    {teamManagers.map((manager) => (
-                      <option key={manager.id} value={manager.id}>
-                        {manager.full_name} ({manager.email})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Logo URL
@@ -330,7 +293,6 @@ export default function TeamsManagementPage() {
                       home_city: '',
                       home_venue: '',
                       founded_year: new Date().getFullYear(),
-                      manager_id: '',
                       logo_url: ''
                     })
                   }}
@@ -390,12 +352,6 @@ export default function TeamsManagementPage() {
                       <div className="flex items-center text-gray-600">
                         <span className="mr-2">📅</span>
                         <span>Founded {team.founded_year}</span>
-                      </div>
-                    )}
-                    {(team as any).manager && (
-                      <div className="flex items-center text-gray-600">
-                        <span className="mr-2">👤</span>
-                        <span>{(team as any).manager.full_name}</span>
                       </div>
                     )}
                     <div className="flex items-center text-gray-600">
