@@ -1,14 +1,20 @@
+-- Add league_admin role to the user_role enum type
+DO $$
+BEGIN
+  -- Check if the enum value already exists
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_enum
+    WHERE enumlabel = 'league_admin'
+    AND enumtypid = (SELECT oid FROM pg_type WHERE typname = 'user_role')
+  ) THEN
+    -- Add the new enum value
+    ALTER TYPE user_role ADD VALUE 'league_admin';
+  END IF;
+END $$;
+
 -- Add league_admin role and league assignment to profiles
 ALTER TABLE profiles
 ADD COLUMN IF NOT EXISTS managed_league_id UUID REFERENCES leagues(id) ON DELETE CASCADE;
-
--- Update role check to include league_admin
-ALTER TABLE profiles
-DROP CONSTRAINT IF EXISTS profiles_role_check;
-
-ALTER TABLE profiles
-ADD CONSTRAINT profiles_role_check
-CHECK (role IN ('admin', 'league_admin', 'team_manager', 'player', 'fan'));
 
 COMMENT ON COLUMN profiles.managed_league_id IS 'For league_admin role: the specific league they can manage. NULL for super admins.';
 
