@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import type { DivisionStanding } from '@/lib/types/database.types'
 import ExportButton from '@/components/ExportButton'
+import TopScorers from '@/components/TopScorers'
 import Image from 'next/image'
 
 export default async function StandingsPage() {
@@ -65,6 +66,12 @@ export default async function StandingsPage() {
       </div>
 
       <div className="container mx-auto px-4 py-8">
+        {/* Top Scorers Section */}
+        <div className="mb-12">
+          <TopScorers />
+        </div>
+
+        {/* Standings Tables */}
         {allStandings.length === 0 ? (
           <div className="bg-white rounded-lg shadow p-8 text-center">
             <div className="text-gray-400 text-5xl mb-4">📊</div>
