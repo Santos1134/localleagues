@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import AnnouncementsFeed from '@/components/AnnouncementsFeed'
+import LiveScore from '@/components/LiveScore'
 import { createClient } from '@/lib/supabase/server'
 
 export default async function Home() {
@@ -69,6 +70,19 @@ export default async function Home() {
               <div className="text-gray-600">Players</div>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* Live Scores Section */}
+      <section className="py-16 bg-white">
+        <div className="container mx-auto px-4">
+          <LiveScore
+            autoRefresh={true}
+            refreshInterval={30000}
+            showUpcoming={true}
+            showRecent={true}
+            limit={10}
+          />
         </div>
       </section>
 
