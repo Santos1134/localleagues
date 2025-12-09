@@ -119,6 +119,7 @@ export default function CupDetailsPage() {
 
   // Fixture management
   const [showAddFixture, setShowAddFixture] = useState(false)
+  const [editingMatchId, setEditingMatchId] = useState<string | null>(null)
   const [newFixtureForm, setNewFixtureForm] = useState({
     home_team_id: '',
     away_team_id: '',
@@ -126,6 +127,7 @@ export default function CupDetailsPage() {
     match_date: '',
     venue: ''
   })
+  const [editMatchForm, setEditMatchForm] = useState<any>(null)
 
   useEffect(() => {
     fetchCupData()
@@ -561,6 +563,62 @@ export default function CupDetailsPage() {
       fetchCupData()
     } catch (err: any) {
       setError(`Failed to create fixture: ${err.message}`)
+    }
+  }
+
+  const updateMatch = async () => {
+    if (!editMatchForm) return
+
+    try {
+      const updateData: any = {
+        match_date: editMatchForm.match_date || null,
+        venue: editMatchForm.venue || null,
+        status: editMatchForm.status
+      }
+
+      // Add scores if match is completed or live
+      if (editMatchForm.status === 'completed' || editMatchForm.status === 'live') {
+        updateData.home_score = parseInt(editMatchForm.home_score) || 0
+        updateData.away_score = parseInt(editMatchForm.away_score) || 0
+      }
+
+      const { error: updateError } = await supabase
+        .from('cup_matches')
+        .update(updateData)
+        .eq('id', editMatchForm.id)
+
+      if (updateError) {
+        setError(`Failed to update match: ${updateError.message}`)
+        return
+      }
+
+      setSuccess('Match updated successfully!')
+      setEditingMatchId(null)
+      setEditMatchForm(null)
+      fetchCupData()
+    } catch (err: any) {
+      setError(`Failed to update match: ${err.message}`)
+    }
+  }
+
+  const deleteMatch = async (matchId: string) => {
+    if (!confirm('Are you sure you want to delete this fixture?')) return
+
+    try {
+      const { error: deleteError } = await supabase
+        .from('cup_matches')
+        .delete()
+        .eq('id', matchId)
+
+      if (deleteError) {
+        setError(`Failed to delete match: ${deleteError.message}`)
+        return
+      }
+
+      setSuccess('Match deleted successfully!')
+      fetchCupData()
+    } catch (err: any) {
+      setError(`Failed to delete match: ${err.message}`)
     }
   }
 
@@ -1323,32 +1381,140 @@ export default function CupDetailsPage() {
                       <h3 className="text-xl font-bold mb-3 text-liberia-blue">{group.group_name}</h3>
                       <div className="space-y-2">
                         {groupMatches.map(match => (
-                          <div key={match.id} className="flex items-center justify-between p-3 border rounded hover:bg-gray-50">
-                            <div className="flex-1">
-                              <span className="font-semibold">{match.home_team_name}</span>
-                              {match.status === 'completed' && match.home_score !== null && (
-                                <span className="mx-2 text-liberia-red font-bold">
-                                  {match.home_score} - {match.away_score}
-                                </span>
-                              )}
-                              {match.status !== 'completed' && <span className="mx-2">vs</span>}
-                              <span className="font-semibold">{match.away_team_name}</span>
-                            </div>
-                            <div className="flex items-center gap-3">
-                              <span className={`px-2 py-1 rounded text-xs font-semibold ${
-                                match.status === 'completed' ? 'bg-green-100 text-green-800' :
-                                match.status === 'live' ? 'bg-red-100 text-red-800' :
-                                'bg-gray-100 text-gray-800'
-                              }`}>
-                                {match.status}
-                              </span>
-                              <button
-                                onClick={() => router.push(`/admin/cups/${cupId}/matches/${match.id}`)}
-                                className="text-liberia-blue hover:underline text-sm"
-                              >
-                                Edit
-                              </button>
-                            </div>
+                          <div key={match.id}>
+                            {editingMatchId === match.id ? (
+                              // Edit Mode
+                              <div className="bg-blue-50 p-4 border-2 border-liberia-blue rounded-lg">
+                                <h4 className="font-bold mb-3">Edit Match</h4>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                  <div>
+                                    <label className="block text-sm font-medium mb-1">Home Score</label>
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      value={editMatchForm?.home_score ?? ''}
+                                      onChange={(e) => setEditMatchForm({...editMatchForm, home_score: e.target.value})}
+                                      className="w-full px-3 py-2 border rounded-lg"
+                                      placeholder="0"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="block text-sm font-medium mb-1">Away Score</label>
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      value={editMatchForm?.away_score ?? ''}
+                                      onChange={(e) => setEditMatchForm({...editMatchForm, away_score: e.target.value})}
+                                      className="w-full px-3 py-2 border rounded-lg"
+                                      placeholder="0"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="block text-sm font-medium mb-1">Status</label>
+                                    <select
+                                      value={editMatchForm?.status}
+                                      onChange={(e) => setEditMatchForm({...editMatchForm, status: e.target.value})}
+                                      className="w-full px-3 py-2 border rounded-lg"
+                                    >
+                                      <option value="scheduled">Scheduled</option>
+                                      <option value="live">Live</option>
+                                      <option value="completed">Completed</option>
+                                      <option value="postponed">Postponed</option>
+                                      <option value="cancelled">Cancelled</option>
+                                    </select>
+                                  </div>
+                                  <div>
+                                    <label className="block text-sm font-medium mb-1">Match Date</label>
+                                    <input
+                                      type="datetime-local"
+                                      value={editMatchForm?.match_date ? new Date(editMatchForm.match_date).toISOString().slice(0, 16) : ''}
+                                      onChange={(e) => setEditMatchForm({...editMatchForm, match_date: e.target.value})}
+                                      className="w-full px-3 py-2 border rounded-lg"
+                                    />
+                                  </div>
+                                  <div className="md:col-span-2">
+                                    <label className="block text-sm font-medium mb-1">Venue</label>
+                                    <input
+                                      type="text"
+                                      value={editMatchForm?.venue ?? ''}
+                                      onChange={(e) => setEditMatchForm({...editMatchForm, venue: e.target.value})}
+                                      className="w-full px-3 py-2 border rounded-lg"
+                                      placeholder="Stadium name"
+                                    />
+                                  </div>
+                                </div>
+                                <div className="flex gap-2 mt-3">
+                                  <button
+                                    onClick={updateMatch}
+                                    className="bg-liberia-red hover:bg-liberia-blue text-white px-4 py-2 rounded-lg font-semibold"
+                                  >
+                                    Save Changes
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      setEditingMatchId(null)
+                                      setEditMatchForm(null)
+                                    }}
+                                    className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-lg font-semibold"
+                                  >
+                                    Cancel
+                                  </button>
+                                  <button
+                                    onClick={() => deleteMatch(match.id)}
+                                    className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-semibold ml-auto"
+                                  >
+                                    Delete
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              // View Mode
+                              <div className="flex items-center justify-between p-3 border rounded hover:bg-gray-50">
+                                <div className="flex-1">
+                                  <span className="font-semibold">{match.home_team_name}</span>
+                                  {match.status === 'completed' && match.home_score !== null && (
+                                    <span className="mx-2 text-liberia-red font-bold">
+                                      {match.home_score} - {match.away_score}
+                                    </span>
+                                  )}
+                                  {match.status !== 'completed' && <span className="mx-2">vs</span>}
+                                  <span className="font-semibold">{match.away_team_name}</span>
+                                  {match.match_date && (
+                                    <span className="ml-3 text-xs text-gray-500">
+                                      {new Date(match.match_date).toLocaleDateString()} {new Date(match.match_date).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}
+                                    </span>
+                                  )}
+                                  {match.venue && (
+                                    <span className="ml-2 text-xs text-gray-500">📍 {match.venue}</span>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-3">
+                                  <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                                    match.status === 'completed' ? 'bg-green-100 text-green-800' :
+                                    match.status === 'live' ? 'bg-red-100 text-red-800' :
+                                    'bg-gray-100 text-gray-800'
+                                  }`}>
+                                    {match.status}
+                                  </span>
+                                  <button
+                                    onClick={() => {
+                                      setEditingMatchId(match.id)
+                                      setEditMatchForm({
+                                        id: match.id,
+                                        home_score: match.home_score ?? '',
+                                        away_score: match.away_score ?? '',
+                                        status: match.status,
+                                        match_date: match.match_date,
+                                        venue: match.venue ?? ''
+                                      })
+                                    }}
+                                    className="text-liberia-blue hover:underline text-sm font-semibold"
+                                  >
+                                    Edit
+                                  </button>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>
