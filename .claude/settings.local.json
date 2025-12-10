@@ -13,7 +13,9 @@
       "Bash(npm install:*)",
       "Bash(git fetch:*)",
       "Bash(wc:*)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(npx supabase db reset:*)",
+      "Bash(dir:*)"
     ],
     "deny": [],
     "ask": []

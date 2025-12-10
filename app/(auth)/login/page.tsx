@@ -26,19 +26,22 @@ export default function LoginPage() {
 
       if (error) throw error
 
-      // Only allow admin login
+      // Only allow admin login (admin, league_admin, or cup_admin)
       if (data.user) {
-        const { data: profile } = await supabase
+        const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('role')
           .eq('id', data.user.id)
           .single()
 
-        if (profile?.role === 'admin') {
+        console.log('[Login] User profile:', profile)
+        console.log('[Login] Profile error:', profileError)
+
+        if (profile?.role === 'admin' || profile?.role === 'league_admin' || profile?.role === 'cup_admin') {
           router.push('/admin')
         } else {
           await supabase.auth.signOut()
-          throw new Error('Access denied. Admin privileges required.')
+          throw new Error(`Access denied. Admin privileges required. Your role: ${profile?.role || 'none'}`)
         }
       }
     } catch (err: any) {
