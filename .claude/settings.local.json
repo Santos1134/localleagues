@@ -15,7 +15,13 @@
       "Bash(wc:*)",
       "Bash(git checkout:*)",
       "Bash(npx supabase db reset:*)",
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "Bash(for file in app/\\(dashboard\\)/admin/*/page.tsx app/\\(dashboard\\)/admin/*/*/page.tsx app/\\(dashboard\\)/admin/*/*/*/page.tsx app/\\(dashboard\\)/manager/page.tsx app/\\(dashboard\\)/official/page.tsx app/\\(dashboard\\)/official/*/page.tsx app/\\(dashboard\\)/official/*/*/page.tsx)",
+      "Bash(do if [ -f \"$file\" ])",
+      "Bash(! grep -q \"export const dynamic\" \"$file\")",
+      "Bash(then sed -i \"1a export const dynamic = ''force-dynamic''\\n\" \"$file\")",
+      "Bash(fi:*)",
+      "Bash(done)"
     ],
     "deny": [],
     "ask": []
