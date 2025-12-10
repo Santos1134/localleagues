@@ -137,47 +137,86 @@ export default function AdministratorsPage() {
       return
     }
 
-    // Step 1: Create auth user
-    const { data: authData, error: signUpError } = await supabase.auth.signUp({
-      email: formData.email.trim().toLowerCase(),
-      password: formData.password,
-      options: {
-        emailRedirectTo: undefined // Disable email confirmation
-      }
-    })
+    try {
+      // Step 1: Create auth user
+      const { data: authData, error: signUpError } = await supabase.auth.signUp({
+        email: formData.email.trim().toLowerCase(),
+        password: formData.password,
+        options: {
+          emailRedirectTo: undefined
+        }
+      })
 
-    if (signUpError) {
-      setError(signUpError.message)
-      return
-    }
-
-    if (authData.user) {
-      // Step 2: Wait a moment for the profile to be created by trigger
-      await new Promise(resolve => setTimeout(resolve, 1000))
-
-      // Step 3: Update or insert the profile
-      const { error: upsertError } = await supabase
-        .from('profiles')
-        .upsert({
-          id: authData.user.id,
-          email: formData.email.trim().toLowerCase(),
-          role: 'league_admin',
-          managed_league_id: formData.admin_type === 'league' ? formData.managed_league_id : null,
-          managed_cup_id: formData.admin_type === 'cup' ? formData.managed_cup_id : null,
-          full_name: formData.full_name.trim() || null
-        }, {
-          onConflict: 'id'
-        })
-
-      if (upsertError) {
-        setError(`Failed to create admin profile: ${upsertError.message}`)
+      if (signUpError) {
+        console.error('SignUp Error:', signUpError)
+        setError(`Signup failed: ${signUpError.message}`)
         return
       }
 
+      if (!authData.user) {
+        setError('User creation failed - no user returned')
+        return
+      }
+
+      console.log('User created:', authData.user.id)
+
+      // Step 2: Wait for profile trigger
+      await new Promise(resolve => setTimeout(resolve, 2000))
+
+      // Step 3: Check if profile exists
+      const { data: existingProfile, error: checkError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', authData.user.id)
+        .single()
+
+      console.log('Existing profile:', existingProfile, 'Check error:', checkError)
+
+      // Step 4: Insert or update profile
+      if (!existingProfile) {
+        // Profile doesn't exist, insert it
+        const { error: insertError } = await supabase
+          .from('profiles')
+          .insert({
+            id: authData.user.id,
+            email: formData.email.trim().toLowerCase(),
+            role: 'league_admin',
+            managed_league_id: formData.admin_type === 'league' ? formData.managed_league_id : null,
+            managed_cup_id: formData.admin_type === 'cup' ? formData.managed_cup_id : null,
+            full_name: formData.full_name.trim() || null
+          })
+
+        if (insertError) {
+          console.error('Insert Error:', insertError)
+          setError(`Failed to create profile: ${insertError.message}`)
+          return
+        }
+      } else {
+        // Profile exists, update it
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({
+            role: 'league_admin',
+            managed_league_id: formData.admin_type === 'league' ? formData.managed_league_id : null,
+            managed_cup_id: formData.admin_type === 'cup' ? formData.managed_cup_id : null,
+            full_name: formData.full_name.trim() || null
+          })
+          .eq('id', authData.user.id)
+
+        if (updateError) {
+          console.error('Update Error:', updateError)
+          setError(`Failed to update profile: ${updateError.message}`)
+          return
+        }
+      }
+
       const managementType = formData.admin_type === 'league' ? 'league' : 'cup'
-      setSuccess(`${managementType} admin account created successfully! Credentials: ${formData.email}`)
+      setSuccess(`${managementType} admin created successfully! Email: ${formData.email}`)
       resetForm()
       fetchAdmins()
+    } catch (err: any) {
+      console.error('Unexpected error:', err)
+      setError(`Unexpected error: ${err.message || 'Unknown error'}`)
     }
   }
 
