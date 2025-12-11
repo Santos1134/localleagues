@@ -24,7 +24,9 @@
       "Bash(done)",
       "Bash(npx vercel:*)",
       "Bash(git remote set-url:*)",
-      "Bash(git remote add:*)"
+      "Bash(git remote add:*)",
+      "Bash(curl:*)",
+      "Bash(echo:*)"
     ],
     "deny": [],
     "ask": []
