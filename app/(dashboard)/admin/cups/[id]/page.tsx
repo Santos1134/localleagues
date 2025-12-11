@@ -211,7 +211,7 @@ export default function CupDetailsPage() {
         .order('group_order')
 
       if (groupsData) {
-        const groupsWithTeams = groupsData.map(group => ({
+        const groupsWithTeams = groupsData.map((group: any) => ({
           ...group,
           teams: formattedTeams.filter((t: CupTeam) => t.group_id === group.id)
         }))
